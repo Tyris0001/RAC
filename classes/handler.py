@@ -1,7 +1,7 @@
 from classes.config import *
 
 class Handler:
-    def __init__(self, proxy, useragent, username, password, captype, debug=True):
+    def __init__(self, proxy, useragent, username, password, captype, verify_email, debug=True):
         self.debug = debug
         self.__threadname = THREAD_NAME_LIST[random.randint(0, len(THREAD_NAME_LIST)-1)].upper() + "-" +THREAD_NAME_LIST[random.randint(0, len(THREAD_NAME_LIST)-1)].upper()
         self.__proxy = proxy
@@ -15,6 +15,7 @@ class Handler:
         self.__session.mount('http://', HTTPAdapter(max_retries=555))
         self.__cookie = None
         self.__retries = 0
+        self.__verify = verify_email
         self.print("Handler created with parameters\n\t\t\t\t-Proxy: "+proxy["http"]+"\n\t\t\t\t-Username: "+ username +"\n\t\t\t\t-Password: "+ password, "green")
 
 
@@ -27,10 +28,9 @@ class Handler:
         Verified = False
         while not Verified:
             email_request = requests.post("https://accountsettings.roblox.com/v1/email", headers={"X-CSRF-TOKEN":self.__csrf, "User-Agent":self.__useragent}, json={"emailAddress":email_addy+"@vddaz.com", "password":""}, cookies={".ROBLOSECURITY":self.__cookie}, proxies=self.__proxy)
-            print(email_request.text)
             if email_request.status_code != 200:
                 if email_request.json()["errors"][0]["code"] == 8:
-                    self.print("Account already has email", "red")
+                    self.print("Account already has email or other error...", "red")
                     return
                 if email_request.json()["errors"][0]["code"] == 6:
                     self.print("Too many attempts", "red")
@@ -248,7 +248,8 @@ class Handler:
                 xx1.writelines(self.__username+":"+self.__password+":"+roblosec[0]+"\n")
                 xx1.close()
                 self.__cookie = roblosec[0]
-                #self.verifyEmail()
+                if self.__verify :
+                    self.verifyEmail()
 
             elif "Token Validation Failed" in x1.text:
                 self.newproxy()

@@ -27,6 +27,11 @@ if __name__ == "__main__":
     clear()
     if option_choice == 1:
         thread_count = input("How many accounts do you want to generate?\n> ")
+        verify_email = input("Do you want to email-verify these accounts [Y/n]?\n> ")
+        if verify_email.lower() == "y":
+            verify_email = True 
+        else:
+            verify_email = False
 
         for acc in range(int(thread_count)):
             p = open("proxies.txt")
@@ -37,7 +42,7 @@ if __name__ == "__main__":
                 "https":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1]
             }
 
-            handler_list.append(Handler(prx, USERAGENTS[random.randint(0, len(USERAGENTS) - 1)], genuser(), ''.join(random.choice(string.ascii_uppercase) for i in range(8)), "SIGNUP"))
+            handler_list.append(Handler(prx, USERAGENTS[random.randint(0, len(USERAGENTS) - 1)], genuser(), ''.join(random.choice(string.ascii_uppercase) for i in range(8)), "SIGNUP", verify_email))
 
 
         for handler in handler_list:
@@ -66,7 +71,7 @@ if __name__ == "__main__":
                 "https":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1]
             }
 
-            handler_list.append(Handler(prx, USERAGENTS[random.randint(0, len(USERAGENTS) - 1)], line.split(":")[0],  line.split(":")[1], "LOGIN"))
+            handler_list.append(Handler(prx, USERAGENTS[random.randint(0, len(USERAGENTS) - 1)], line.split(":")[0],  line.split(":")[1], "LOGIN", False))
 
 
         for handler in handler_list:
