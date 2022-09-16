@@ -14,7 +14,7 @@ class Handler:
         self.__session = requests.Session()
         self.__session.mount('http://', HTTPAdapter(max_retries=555))
         self.__cookie = None
-
+        self.__retries = 0
         self.print("Handler created with parameters\n\t\t\t\t-Proxy: "+proxy["http"]+"\n\t\t\t\t-Username: "+ username +"\n\t\t\t\t-Password: "+ password, "green")
 
 
@@ -328,9 +328,15 @@ class Handler:
                     return 
                 if x1.json()["errors"][0]["code"] == 2:
                     self.print("Captcha failed to solve. retrying!", "red")
-                    
+                    cap_json = json.loads(x1.json()["errors"][0]["fieldData"])
+                    captcha_id, captcha_blob = cap_json["unifiedCaptchaId"], cap_json["dxBlob"] 
+
+                    if self.__retries >= 3:
+                        self.print("Max retires 3/3 reached, aborting handler.", "red")
+                        return
+
+                    self.__retries += 1
                     solved_captcha_token = self.captchaTask(captcha_blob)
-                    print(solved_captcha_token)
 
             else:
                 print(x1.text)

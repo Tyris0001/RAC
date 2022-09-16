@@ -57,6 +57,7 @@ if __name__ == "__main__":
         file_name = input(colored("[USER] - ", "yellow"))
         file_name = file_name+".txt"
         for line in open(file_name).readlines():
+            line = line.strip("\n").replace(" ", "")
             p = open("proxies.txt")
             le = random_line(p)
 
