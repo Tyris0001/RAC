@@ -1,9 +1,20 @@
 from classes.config import *
+from classes.thread import *
+from classes.roblox import *
 from classes.handler import *
-
 
 #    def __init__(self, proxy, useragent, username, password, debug=True):
 
+
+def ihate_async(typ, args):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    if typ == 1:
+        loop.run_until_complete(createAccount(args))
+        loop.close()
+    else:
+        loop.run_until_complete(loginAccount(args))
+        loop.close()
 
 def random_line(afile):
     line = next(afile)
@@ -14,72 +25,100 @@ def random_line(afile):
         line = line.replace("\n", "").replace("\\n", "")
     return line.split(":")
 
-handler_list = []
-thread_list = []
+
 if __name__ == "__main__":
+    while 1:
+        l = asyncio.new_event_loop()
+        asyncio.set_event_loop(l)
+        clear()
+        print(colored("RAC - FREE VERSION", "blue"))
+        print(colored("------------------", "white"))
+        print(colored("[1] - Generate Accounts", "green"))
+        print(colored("[2] - UP2Cookie", "green"))
 
-    print(colored("RAC - FREE VERSION", "blue"))
-    print(colored("------------------", "white"))
-    print(colored("[1] - Generate Accounts", "green"))
-    print(colored("[2] - UP2Cookie", "green"))
+        option_choice = int(input(colored("[USER] - ", "yellow")))
+        clear()
 
-    option_choice = int(input(colored("[USER] - ", "yellow")))
-    clear()
-    if option_choice == 1:
-        thread_count = input("How many accounts do you want to generate?\n> ")
-        verify_email = input("Do you want to email-verify these accounts [Y/n]?\n> ")
-        if verify_email.lower() == "y":
-            verify_email = True 
-        else:
-            verify_email = False
+        if option_choice == 1:
+            thread_count = input("How many accounts do you want to generate?\n> ")
+            verify_email = input("Do you want to email-verify these accounts [Y/n]?\n> ")
+            
+            if verify_email.lower() == "y":
+                verify_email = True 
+            else:
+                verify_email = False
 
-        for acc in range(int(thread_count)):
-            p = open("proxies.txt")
-            le = random_line(p)
+            thread_list = []
 
-            prx = {
-                "http":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1],
-                "https":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1]
-            }
+            clear()
 
-            handler_list.append(Handler(prx, USERAGENTS[random.randint(0, len(USERAGENTS) - 1)], genuser(), ''.join(random.choice(string.ascii_uppercase) for i in range(8)), "SIGNUP", verify_email))
-
-
-        for handler in handler_list:
-            handler.getcsrf()
-
-        for handler in handler_list:
-            thread_list.append(threading.Thread(target=handler.genaccount))
-
-        for thread in thread_list:
-            thread.start()
+        
+                
+            # taken from Aurora source-code, thanks novuh
+            #loop = asyncio.new_event_loop()
+            #loop.run_until_complete(conGather(*handler_list))
 
 
-        for thread in thread_list:
-            thread.join()
-    elif option_choice == 2:
-        print("user:password filename (without the .txt)")
-        file_name = input(colored("[USER] - ", "yellow"))
-        file_name = file_name+".txt"
-        for line in open(file_name).readlines():
-            line = line.strip("\n").replace(" ", "")
-            p = open("proxies.txt")
-            le = random_line(p)
-
-            prx = {
-                "http":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1],
-                "https":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1]
-            }
-
-            handler_list.append(Handler(prx, USERAGENTS[random.randint(0, len(USERAGENTS) - 1)], line.split(":")[0],  line.split(":")[1], "LOGIN", False))
 
 
-        for handler in handler_list:
-            handler.getcsrf()
+            handler_list = [ThreadObject(genuser(), ''.join(random.choice(string.ascii_letters) for i in range(8)), "SIGNUP", verify_email) for i in range(int(thread_count))]
+            for handler in handler_list:
+                thread_list.append(threading.Thread(target=ihate_async, args=(1, handler, )))
 
-        for handler in handler_list:
-            thread_list.append(threading.Thread(target=handler.login))
+            for thread in thread_list:
+                thread.start()
 
-        for thread in thread_list:
-            thread.start()
+
+            for thread in thread_list:
+                thread.join()
+
+
+            print(colored("[---", "red"), end="")
+            print(colored("RAC", "white"), end="")
+            print(colored("---]", "red"), end="")
+            print("\t-►\t", end="")
+            print(colored("Finished! [ENTER]", "green"), end="")    
+            input()
+
+        elif option_choice == 2:
+            print("user:password filename (without the .txt)")
+
+            file_name = input(colored("[USER] - ", "yellow"))
+            file_name = file_name+".txt"
+
+            handler_list = []
+            thread_list = []
+            clear()
+
+            for line in open(file_name).readlines():
+
+                line = line.strip("\n").replace(" ", "")
+            
+                handler_list.append(ThreadObject(line.split(":")[0].strip(), line.split(":")[1].strip(), "LOGIN", False))
+                
+                # taken from Aurora source-code, thanks novuh
+                
+            #loop = asyncio.new_event_loop()
+            #loop.run_until_complete(conGather(*handler_list))
+
+
+
+            for handler in handler_list:
+                thread_list.append(threading.Thread(target=ihate_async, args=(2, handler, )))
+
+            for thread in thread_list:
+                thread.start()
+
+
+            for thread in thread_list:
+                thread.join()
+
+
+
+            print(colored("[---", "red"), end="")
+            print(colored("RAC", "white"), end="")
+            print(colored("---]", "red"), end="")
+            print("\t-►\t", end="")
+            print(colored("Finished! [ENTER]", "green"), end="")    
+            input()
 

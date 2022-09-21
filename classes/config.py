@@ -7,10 +7,18 @@ import time
 import re
 import threading
 import string 
-from requests.adapters import HTTPAdapter, Retry
 from bs4 import BeautifulSoup
+import platform
+import asyncio 
+import urllib.parse
 
-# EDIT THESE AT YOU OWN DISCRETION 
+# EDIT THESE
+CAPTCHA_KEY = ""
+USERNAME_TYPE = 1 # 1 = random, 2 = use base_name
+BASE_NAME = ""
+
+ADJECTIVES = requests.get("https://gist.githubusercontent.com/hugsy/8910dc78d208e40de42deb29e62df913/raw/eec99c5597a73f6a9240cab26965a8609fa0f6ea/english-adjectives.txt").text.split("\n")
+WORDS = requests.get("https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt").text.split("\n")
 
 THREAD_NAME_LIST = [
     "Alph",
@@ -40,12 +48,6 @@ THREAD_NAME_LIST = [
     "Yank",
     "Zulu"
 ]
-CAPTCHA_KEY = ""
-BASE_NAME = "TyrisBot_"
-PASSWORD = "peewee2583"
-COOKIEFILE = open('cookies.txt', 'a')
-USE_PROXY = True 
-PROXY_FILE = open('proxies.txt')
 USERAGENTS = [
     "Mozilla/5.0 (Linux; Android 12; SM-S906N Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/80.0.3987.119 Mobile Safari/537.36",
     "Mozilla/5.0 (Linux; Android 10; SM-G996U Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Mobile Safari/537.36",
@@ -75,8 +77,32 @@ CAPTCHA_TYPES = {
 }
 
 def genuser():
-    return BASE_NAME + (str)(random.randint(10000,9999999))
-
+    if USERNAME_TYPE == 1:
+        alpha_name = (random.choice(ADJECTIVES) + random.choice(WORDS)).replace(" ","").strip()
+        alpha_name += (str)(random.randint(1000,99999))
+        return alpha_name[:20]
+    else:
+        return BASE_NAME + (str)(random.randint(10000,9999999))
 
 def clear():
-    os.system('cls')
+    if platform.system() == "Linux":
+        os.system('clear')
+    else:
+        os.system('cls')
+        setWindowsPolicy()
+
+
+# taken from Aurora source-code, thanks novuh
+async def conGather(*tasks):
+    sem = asyncio.Semaphore(500)
+
+    async def semTask(task):
+        async with sem:
+            return await task
+    return await asyncio.gather(*(semTask(task) for task in tasks))
+
+def setWindowsPolicy():
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    loop = asyncio.ProactorEventLoop()
+    asyncio.set_event_loop(loop)
+
