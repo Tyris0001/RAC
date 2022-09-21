@@ -9,8 +9,6 @@ class ThreadObject:
         self.__retries = 3
         self.__username = username
         self.__password = password 
-        self.__csrf = self.getcsrf()
-        self.__captcha_type = CAPTCHA_TYPES[captype]
         self.__raw_captcha_type = captype
         self.__cookie = None
         self.__verify = verify_email
@@ -19,7 +17,16 @@ class ThreadObject:
         self.__captchaBlob = None
 
         self.__session.headers["User-Agent"] = self.__useragent
+
+        self.log("Finished setup", "blue")
         
+        if captype != "CHECK":
+            self.__captcha_type = CAPTCHA_TYPES[captype]
+            self.__csrf = self.getcsrf()
+
+
+        
+
     
     @property 
     def session(self):
@@ -107,15 +114,16 @@ class ThreadObject:
         proxy_valid = False 
         while not proxy_valid:
             try:
-                with self.__session.get("https://roblox.com") as req:
+                with self.__session.get("https://roblox.com", timeout=5) as req:
                     if req.status_code == 200:
                         proxy_valid = True 
                         self.__session.proxies = self.__proxy
                     else:
+                        self.log("Proxy issue, grabbing new proxy.", "red")
                         self.newproxy()
                         time.sleep(2)   
             except:
-                self.log("  , grabbing new proxy.", "red")
+                self.log("Proxy issue, grabbing new proxy.", "red")
                 time.sleep(1)
                 self.newproxy()
                 

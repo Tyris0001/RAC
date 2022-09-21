@@ -1,6 +1,7 @@
 from classes.config import *
 from classes.roblox import *
 
+
 async def createAccount(thread):
 
     # first let's make sure the generated username isn't invalid
@@ -27,3 +28,24 @@ async def loginAccount(thread):
     await login(thread)
 
     # That's all folks  
+
+async def checkCookie(thread):
+
+  
+    valid_file = open("valid.txt", "a")
+    # not that much code required for a cookie checker
+    thread.session.cookies.update({
+        ".ROBLOSECURITY":thread.cookie
+    })
+    with thread.session.get("https://www.roblox.com/mobileapi/userinfo") as req:
+        if req.status_code == 200:
+            valid_file.write(thread.cookie+"\n")
+            
+            cookie_info = req.json()
+            thread.username = cookie_info["UserName"]
+            
+
+            if thread.verify:
+                await verifyEmail(thread)
+
+    valid_file.close()

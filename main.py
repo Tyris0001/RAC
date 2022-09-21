@@ -12,8 +12,14 @@ def ihate_async(typ, args):
     if typ == 1:
         loop.run_until_complete(createAccount(args))
         loop.close()
-    else:
+    elif typ == 2:
         loop.run_until_complete(loginAccount(args))
+        loop.close()
+    elif typ == 3:
+        loop.run_until_complete(checkCookie(args))
+        loop.close()
+    elif typ == 4:
+        loop.run_until_complete(checkCookie(args))
         loop.close()
 
 def random_line(afile):
@@ -35,6 +41,9 @@ if __name__ == "__main__":
         print(colored("------------------", "white"))
         print(colored("[1] - Generate Accounts", "green"))
         print(colored("[2] - UP2Cookie", "green"))
+        print(colored("[3] - Cookie Checker", "green"))
+        print(colored("[4] - Cookie email verifier", "green"))
+        print(colored("[Please note that cookie files are overwritten regularly, save working cookies in another directory as I have yet to implement better file-creation]", "cyan"))
 
         option_choice = int(input(colored("[USER] - ", "yellow")))
         clear()
@@ -122,3 +131,93 @@ if __name__ == "__main__":
             print(colored("Finished! [ENTER]", "green"), end="")    
             input()
 
+        elif option_choice == 3:
+            print("Cookie filename (without the .txt)")
+
+            file_name = input(colored("[USER] - ", "yellow"))
+            file_name = file_name+".txt"
+
+            handler_list = []
+            thread_list = []
+            clear()
+
+            for line in open(file_name).readlines():
+
+                line = line.strip("\n").replace(" ", "")
+
+                TObj = ThreadObject(None, None, "CHECK", False)
+                TObj.cookie = line
+                handler_list.append(TObj)
+                
+                # taken from Aurora source-code, thanks novuh
+                
+            #loop = asyncio.new_event_loop()
+            #loop.run_until_complete(conGather(*handler_list))
+
+
+
+            for handler in handler_list:
+                thread_list.append(threading.Thread(target=ihate_async, args=(3, handler, )))
+
+            for thread in thread_list:
+                thread.start()
+
+
+            for thread in thread_list:
+                thread.join()
+
+
+
+
+            print(colored("[---", "red"), end="")
+            print(colored("RAC", "white"), end="")
+            print(colored("---]", "red"), end="")
+            print("\t-►\t", end="")
+            print(colored(f"Valid cookies have been written to valid.txt"))
+            print(colored("Finished! [ENTER]", "green"), end="")    
+            input()
+
+        elif option_choice == 4:
+            print("Cookie filename (without the .txt)")
+
+            file_name = input(colored("[USER] - ", "yellow"))
+            file_name = file_name+".txt"
+
+            handler_list = []
+            thread_list = []
+            clear()
+
+            for line in open(file_name).readlines():
+
+                line = line.strip("\n").replace(" ", "")
+
+                TObj = ThreadObject(None, None, "CHECK", True)
+                TObj.cookie = line
+                handler_list.append(TObj)
+                
+                # taken from Aurora source-code, thanks novuh
+                
+            #loop = asyncio.new_event_loop()
+            #loop.run_until_complete(conGather(*handler_list))
+
+
+
+            for handler in handler_list:
+                thread_list.append(threading.Thread(target=ihate_async, args=(3, handler, )))
+
+            for thread in thread_list:
+                thread.start()
+
+
+            for thread in thread_list:
+                thread.join()
+
+
+
+
+            print(colored("[---", "red"), end="")
+            print(colored("RAC", "white"), end="")
+            print(colored("---]", "red"), end="")
+            print("\t-►\t", end="")
+            print(colored("Finished! [ENTER]", "green"), end="")    
+            input()
