@@ -1,3 +1,4 @@
+[Discord](https://discord.gg/FNwUteyUjN)
 # RAC
 ## What is RAC
 RAC is an open-source roblox multitool
