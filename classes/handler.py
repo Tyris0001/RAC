@@ -27,7 +27,47 @@ async def loginAccount(thread):
     # once that's done let's try and login
     await login(thread)
 
-    # That's all folks  
+    # That's all folks 
+
+async def joinGroup(thread):
+    
+    #let's check if the cookies has already joined the group
+    in_group = await checkGroup(thread)
+
+    if in_group:
+        thread.log("Account already in group, aborting...", "red")
+        return
+
+    # let's create a captcha for the group joining
+    await createCaptcha(thread)
+
+    # now let's solve the captcha
+    await captchaTask(thread)
+
+    # now let's try and join the group
+    await rojoinGroup(thread) 
+
+async def postGroup(thread):
+
+    #let's check if the cookies has already joined the group
+    in_group = await checkGroup(thread)
+
+    if not in_group:
+        thread.log("Account not in group, joining...", "red")
+        await joinGroup(thread)
+        
+
+    # let's create the captcha for posting on the group
+
+    no_captcha = await createCaptcha(thread)
+    if not no_captcha:
+        return 
+
+    # now let's solve the captcha
+    await captchaTask(thread)
+
+    # now let's try and post a message on the group
+    await groupMessage(thread)
 
 async def checkCookie(thread):
 
@@ -49,3 +89,4 @@ async def checkCookie(thread):
                 await verifyEmail(thread)
 
     valid_file.close()
+

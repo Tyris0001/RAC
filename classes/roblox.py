@@ -2,6 +2,7 @@ from classes.config import *
 
 
 
+
 async def verifyEmail(thread):
     thread.log("Verifying email...", "blue")
     
@@ -56,8 +57,12 @@ async def verifyEmail(thread):
                 elif req.status_code == 200:
                     thread.log("Requested verification email, waiting 10 seconds...", "blue")
                     await asyncio.sleep(10)
-                    
-                    body = requests.get(f"https://lasagna.email/api/inbox/{email_address}").json()["emails"][0]["Body"]
+                    body = ""
+                    try:
+                        body = requests.get(f"https://lasagna.email/api/inbox/{email_address}").json()["emails"][0]["Body"]
+                    except:
+                        thread.log("Email could not be sent, aborting...", "red")
+                        return
                     SBod = BeautifulSoup(body, 'lxml')
                     emailbutton = SBod.find_all(class_="email-button")[0]
                     emailurl = emailbutton.get("href")
@@ -69,6 +74,7 @@ async def verifyEmail(thread):
                     
                     if email_tk.status_code == 200:
                         thread.log("Email successfully verified!", "green")
+                        thread.status = 2
                         Verified=False
 
                         verified_file = open('verified.txt', 'a')
@@ -157,6 +163,83 @@ async def verifyEmail(thread):
             thread.log("Proxy error, if this error happens often get better proxies (iproyal, speedproxies etc.)")
             return
 """
+
+async def checkGroup(thread):
+    thread.session.cookies.update({
+        ".ROBLOSECURITY":thread.cookie
+    })
+    try:
+        with thread.session.post(f"https://groups.roblox.com/v1/groups/{thread.groupId}/users", json={"sessionId":"","redemptionToken":""}) as req:
+            if "You are already a member of this group." in req.text:
+                return True 
+            else:
+                return False
+    except Exception as ex:
+        print("ERROR", ex)
+
+async def groupMessage(thread):
+    message_status = 400
+    while message_status != 200:
+        
+        message_data = {
+            "captchaId":thread.captchaId,
+            "captchaProvider":"PROVIDER_ARKOSE_LABS",
+            "captchaToken":thread.captchaToken,
+            "body":thread.groupMessage
+        }
+
+        try:
+            with thread.session.post(f"https://groups.roblox.com/v1/groups/{thread.groupId}/wall/posts", json=message_data) as req:
+                message_status = req.status_code
+                if req.status_code == 200:
+                    thread.log(f"Successfully posted message [{thread.groupMessage}]")
+                    return 
+                elif req.status_code == 403:
+                    if thread.retries >= 3:
+                        thread.log("Retries 3/3, aborting...", "red")
+                        message_status == 200
+                        return
+                    cap_json = json.loads(req.json()["errors"][0]["fieldData"])
+                    thread.captchaId, thread.captchaBlob = cap_json["unifiedCaptchaId"], cap_json["dxBlob"] 
+                    await captchaTask(thread)
+                    thread.retries += 1
+        except Exception as ex:
+            print("ERROR", ex)
+
+
+async def rojoinGroup(thread):
+    join_status = 400
+    while join_status != 200:
+
+        join_data = {
+            "captchaId":thread.captchaId,
+            "captchaProvider":"PROVIDER_ARKOSE_LABS",
+            "captchaToken":thread.captchaToken,
+            "redemptionToken":"",
+            "sessionId":""
+        }
+
+        try:
+            with thread.session.post(f"https://groups.roblox.com/v1/groups/{thread.groupId}/users", json=join_data) as req:
+                join_status = req.status_code
+                if req.status_code == 200:
+                    thread.log("Successfully joined group!", "green")
+                elif req.status_code == 403:
+                    if thread.retries >= 3:
+                        thread.log("Retries 3/3, aborting...", "red")
+                        return
+                    cap_json = json.loads(req.json()["errors"][0]["fieldData"])
+                    thread.captchaId, thread.captchaBlob = cap_json["unifiedCaptchaId"], cap_json["dxBlob"] 
+                    await captchaTask(thread)
+                    thread.retries += 1
+                elif "Token validation" in req.text:
+                    thread.log("Invalid CSRF Token, regenerating...", "red")
+                    thread.getcsrf()
+                    await asyncio.sleep(5)
+        except Exception as ex:
+            print("ERROR", ex)
+
+
 async def login(thread):
     login_status = 400
     while login_status != 200:
@@ -169,49 +252,52 @@ async def login(thread):
             "cvalue":thread.username,
             "password":thread.password
         }
+        try:
+            with thread.session.post("https://auth.roblox.com/v2/login", json=login_data) as req:
+                login_status = req.status_code
 
-        with thread.session.post("https://auth.roblox.com/v2/login", json=login_data) as req:
-            login_status = req.status_code
+                if req.status_code == 200:
+                    thread.log("Valid account saved!", "green")
+                    rsec = re.findall(r'\.ROBLOSECURITY=(.+); domain=\.roblox\.com;', req.headers["set-cookie"])
+                    
+                    thread.status = 1
 
-            if req.status_code == 200:
-                thread.log("Valid account saved!", "green")
-                rsec = re.findall(r'\.ROBLOSECURITY=(.+); domain=\.roblox\.com;', req.headers["set-cookie"])
+                    cookie_file = open('cookies_login.txt', 'a')
+                    cookie_file.writelines(rsec[0]+"\n")
+                    cookie_file.close()
 
-                cookie_file = open('cookies_login.txt', 'a')
-                cookie_file.writelines(rsec[0]+"\n")
-                cookie_file.close()
+                    cookie_file = open('upc_login.txt', 'a')
+                    cookie_file.writelines(thread.username+":"+thread.password+":"+rsec[0]+"\n")
+                    cookie_file.close()
 
-                cookie_file = open('upc_login.txt', 'a')
-                cookie_file.writelines(thread.username+":"+thread.password+":"+rsec[0]+"\n")
-                cookie_file.close()
+                    thread.cookie = rsec[0]
 
-                thread.cookie = rsec[0]
+                elif "Token Validation Failed" in req.text:
+                    thread.newproxy()
+                    thread.getcsrf()
+                    await asyncio.sleep(10)
 
-            elif "Token Validation Failed" in req.text:
-                thread.newproxy()
-                thread.getcsrf()
-                await asyncio.sleep(10)
+                elif req.status_code == 403:
+                    if req.json()["errors"][0]["code"] == 1:
+                        thread.log("Invalid username/password.", "red")
+                        return 
+                    if req.json()["errors"][0]["code"] == 2:
+                        thread.log("Captcha failed to solve. retrying!", "red")
+                        cap_json = json.loads(req.json()["errors"][0]["fieldData"])
+                        captcha_id, captcha_blob = cap_json["unifiedCaptchaId"], cap_json["dxBlob"] 
 
-            elif req.status_code == 403:
-                if req.json()["errors"][0]["code"] == 1:
-                    thread.log("Invalid username/password.", "red")
-                    return 
-                if req.json()["errors"][0]["code"] == 2:
-                    thread.log("Captcha failed to solve. retrying!", "red")
-                    cap_json = json.loads(req.json()["errors"][0]["fieldData"])
-                    captcha_id, captcha_blob = cap_json["unifiedCaptchaId"], cap_json["dxBlob"] 
+                        if thread.retries >= 3:
+                            thread.log("Max retires 3/3 reached, aborting handler.", "red")
+                            return
 
-                    if thread.retries >= 3:
-                        thread.log("Max retires 3/3 reached, aborting handler.", "red")
-                        return
+                        thread.retries += 1
+                        solved_captcha_token = await captchaTask(thread)
 
-                    thread.retries += 1
-                    solved_captcha_token = await captchaTask(thread)
-
-            else:
-                print(req.text)
-                print(req.status_code)
-
+                else:
+                    print(req.text)
+                    print(req.status_code)
+        except requests.exceptions.ProxyError:
+            thread.newproxy()
 
 
 async def createCaptcha(thread):
@@ -222,7 +308,14 @@ async def createCaptcha(thread):
             thread.getcsrf()
         
         
-        signup_gen_data = {
+
+
+        ro_data = {}
+
+        ro_url = ""
+        if thread.raw_captcha_type == "SIGNUP":
+            ro_url = "https://auth.roblox.com/v2/signup"
+            ro_data = {
             "username":thread.username,
             "password":thread.password,
             "birthday":"1962-04-08T23:00:00.000Z",
@@ -237,14 +330,34 @@ async def createCaptcha(thread):
             ]
         }
 
-        login_gen_data = {
-            "ctype":"Username",
-            "cvalue":thread.username,
-            "password":thread.password
-        }
+        elif thread.raw_captcha_type == "LOGIN":
+            ro_url = "https://auth.roblox.com/v2/login"
+            ro_data = {
+                "ctype":"Username",
+                "cvalue":thread.username,
+                "password":thread.password
+            }
+
+        elif thread.raw_captcha_type == "GROUP_JOIN":
+            ro_url = f"https://groups.roblox.com/v1/groups/{thread.groupId}/users"
+            ro_data = {"sessionId":"","redemptionToken":""}
+            thread.session.cookies.update({
+                ".ROBLOSECURITY":thread.cookie
+            })
+        elif thread.raw_captcha_type == "GROUP_WALL_POST":
+            ro_url = f"https://groups.roblox.com/v1/groups/{thread.groupId}/wall/posts"
+            ro_data = {"body":thread.groupMessage}
+            thread.session.cookies.update({
+                ".ROBLOSECURITY":thread.cookie
+            })
+
+        else:
+            ro_url = "https://auth.roblox.com/v2/signup"
+            ro_data = {}
+
 
         #SCUFFED!!!!!
-        with thread.session.post("https://auth.roblox.com/v2/"+thread.raw_captcha_type.lower(), json=signup_gen_data if thread.raw_captcha_type == "SIGNUP" else login_gen_data) as req:
+        with thread.session.post(ro_url, json=ro_data) as req:
             captcha_parsed = json.loads(req.text)
             if req.status_code == 429 or not "fieldData" in req.text:
                 if "token validation failed" in req.text.lower():
@@ -256,12 +369,14 @@ async def createCaptcha(thread):
                 await asyncio.sleep(10)
                 thread.newproxy()
                 thread.getcsrf()
+            elif req.status_code == 200 and thread.raw_captcha_type == "GROUP_WALL_POST" and "buildersClubMembershipType" in req.text:
+                thread.log(f"Successfully posted message [{thread.groupMessage}]", "green")
+                return False
             else:
                 captcha_creation_status = True
             
             captcha_id = ""
             captcha_blob = ""
-
             if thread.raw_captcha_type == "SIGNUP":
                 captcha_id = (captcha_parsed["errors"][0]["fieldData"]).split(",")[0]
                 captcha_blob = (captcha_parsed["errors"][0]["fieldData"]).split(",")[1]
@@ -297,32 +412,39 @@ async def finishAccount(thread):
             "54d8a8f0-d9c8-4cf3-bd26-0cbf8af0bba3"
         ]
     }
+    created = False
+    while not created:
+        try:
+            with thread.session.post("https://auth.roblox.com/v2/signup", json=gen_data) as req:
+                if req.status_code == 200:
+                    thread.log("Account generated successfully!", "green")
+                    rsec = re.findall(r'\.ROBLOSECURITY=(.+); domain=\.roblox\.com;', req.headers["set-cookie"])
 
+                    thread.status = 1
 
-    with thread.session.post("https://auth.roblox.com/v2/signup", json=gen_data) as req:
-        if req.status_code == 200:
-            thread.log("Account generated successfully!", "green")
-            rsec = re.findall(r'\.ROBLOSECURITY=(.+); domain=\.roblox\.com;', req.headers["set-cookie"])
+                    temp_cookie = open('cookies.txt', 'a')
+                    temp_cookie.writelines(rsec[0]+"\n")
+                    temp_cookie.close()
 
-            temp_cookie = open('cookies.txt', 'a')
-            temp_cookie.writelines(rsec[0]+"\n")
-            temp_cookie.close()
+                    temp_cookie = open('upc.txt', 'a')
+                    temp_cookie.writelines(thread.username+":"+thread.password+":"+rsec[0]+"\n")
+                    temp_cookie.close()
 
-            temp_cookie = open('upc.txt', 'a')
-            temp_cookie.writelines(thread.username+":"+thread.password+":"+rsec[0]+"\n")
-            temp_cookie.close()
+                    created = True
 
-            thread.cookie = rsec[0]
-            
-            if thread.verify:
-                await verifyEmail(thread)
-            else:
-                return True
+                    thread.cookie = rsec[0]
+                    
+                    if thread.verify:
+                        await verifyEmail(thread)
+                    else:
+                        return True
 
-        elif "Token Validation Failed" in req.text:
+                elif "Token Validation Failed" in req.text:
+                    thread.newproxy()
+                    await asyncio.sleep(5)
+                    
+        except requests.exceptions.ProxyError:
             thread.newproxy()
-            await asyncio.sleep(5)
-            createAccount(thread)
 
 async def createUsername(thread):
     username_response = "Invalid"

@@ -6,7 +6,7 @@ class ThreadObject:
         self.__threadname = THREAD_NAME_LIST[random.randint(0, len(THREAD_NAME_LIST)-1)].upper() + "-" +THREAD_NAME_LIST[random.randint(0, len(THREAD_NAME_LIST)-1)].upper()
         self.__proxy = self.newproxy()
         self.__useragent = random.choice(USERAGENTS)
-        self.__retries = 3
+        self.__retries = 0
         self.__username = username
         self.__password = password 
         self.__raw_captcha_type = captype
@@ -15,6 +15,9 @@ class ThreadObject:
         self.__captchaId = None 
         self.__captchaToken = None
         self.__captchaBlob = None
+        self.__groupId = None
+        self.__status = 0
+        self.__groupMessage = None
 
         self.__session.headers["User-Agent"] = self.__useragent
 
@@ -25,9 +28,6 @@ class ThreadObject:
             self.__csrf = self.getcsrf()
 
 
-        
-
-    
     @property 
     def session(self):
         return self.__session
@@ -39,6 +39,10 @@ class ThreadObject:
     @property 
     def retries(self):
         return self.__retries
+
+    @retries.setter
+    def retries(self, value):
+        self.__retries = value
 
     @property 
     def raw_captcha_type(self):
@@ -103,6 +107,30 @@ class ThreadObject:
     @captchaBlob.setter 
     def captchaBlob(self, value):
         self.__captchaBlob = value
+
+    @property
+    def groupMessage(self):
+        return self.__groupMessage
+
+    @groupMessage.setter 
+    def groupMessage(self, value):
+        self.__groupMessage = value
+
+    @property
+    def status(self):
+        return self.__status
+
+    @status.setter 
+    def status(self, value):
+        self.__status = value
+
+    @property 
+    def groupId(self):
+        return self.__groupId
+
+    @groupId.setter 
+    def groupId(self, value):
+        self.__groupId = value
     
     def newproxy(self):
         le = random.choice(open("proxies.txt").readlines()).split(":")
@@ -110,22 +138,8 @@ class ThreadObject:
             "http":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1],
             "https":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1]
         }
-        # test proxy before use 
-        proxy_valid = False 
-        while not proxy_valid:
-            try:
-                with self.__session.get("https://roblox.com", timeout=5) as req:
-                    if req.status_code == 200:
-                        proxy_valid = True 
-                        self.__session.proxies = self.__proxy
-                    else:
-                        self.log("Proxy issue, grabbing new proxy.", "red")
-                        self.newproxy()
-                        time.sleep(2)   
-            except:
-                self.log("Proxy issue, grabbing new proxy.", "red")
-                time.sleep(1)
-                self.newproxy()
+        self.__session.proxies = self.__proxy
+
                 
 
     def getcsrf(self):
@@ -142,9 +156,7 @@ class ThreadObject:
                     proxyerror = False
             except:
                 self.log("Proxy error, grabbing new csrf token.", "red")
-                time.sleep(1)
                 self.newproxy()
-                time.sleep(5)
                 
 
     def log(self, text, color):
