@@ -45,6 +45,7 @@ if __name__ == "__main__":
         clear()
         print(colored("RAC - FREE VERSION", "blue"))
         print(colored("------------------", "white"))
+        #print(colored("Captcha.rip endpoint status", "blue"))  Coming soon
         print(colored("[1] - Generate Accounts", "green"))
         print(colored("[2] - UP2Cookie", "green"))
         print(colored("[3] - Cookie Checker", "green"))
@@ -118,7 +119,6 @@ if __name__ == "__main__":
             handler_list = []
             thread_list = []
             clear()
-
             for line in open(file_name).readlines():
 
                 line = line.strip("\n").replace(" ", "")

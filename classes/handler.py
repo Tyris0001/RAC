@@ -3,6 +3,11 @@ from classes.roblox import *
 
 
 async def createAccount(thread):
+    thread.newproxy()
+
+    await asyncio.sleep(2)
+    thread.getcsrf()
+
 
     # first let's make sure the generated username isn't invalid
     await createUsername(thread)
@@ -17,6 +22,10 @@ async def createAccount(thread):
     await finishAccount(thread)
 
 async def loginAccount(thread):
+    thread.newproxy()
+    await asyncio.sleep(2)
+
+    thread.getcsrf()
 
     # let's create a captcha first since no need to check username validity
     await createCaptcha(thread)
@@ -30,6 +39,11 @@ async def loginAccount(thread):
     # That's all folks 
 
 async def joinGroup(thread):
+    thread.newproxy()
+    await asyncio.sleep(2)
+
+    thread.getcsrf()
+    
     
     #let's check if the cookies has already joined the group
     in_group = await checkGroup(thread)
@@ -48,7 +62,11 @@ async def joinGroup(thread):
     await rojoinGroup(thread) 
 
 async def postGroup(thread):
+    thread.newproxy()
+    await asyncio.sleep(2)
 
+    thread.getcsrf()
+    
     #let's check if the cookies has already joined the group
     in_group = await checkGroup(thread)
 
@@ -70,7 +88,11 @@ async def postGroup(thread):
     await groupMessage(thread)
 
 async def checkCookie(thread):
+    thread.newproxy()
+    await asyncio.sleep(2)
 
+    thread.getcsrf()
+    
   
     valid_file = open("valid.txt", "a")
     # not that much code required for a cookie checker

@@ -4,7 +4,7 @@ class ThreadObject:
     def __init__(self, username, password, captype, verify_email):
         self.__session = requests.Session()
         self.__threadname = THREAD_NAME_LIST[random.randint(0, len(THREAD_NAME_LIST)-1)].upper() + "-" +THREAD_NAME_LIST[random.randint(0, len(THREAD_NAME_LIST)-1)].upper()
-        self.__proxy = self.newproxy()
+        self.__proxy = None
         self.__useragent = random.choice(USERAGENTS)
         self.__retries = 0
         self.__username = username
@@ -25,8 +25,7 @@ class ThreadObject:
         
         if captype != "CHECK":
             self.__captcha_type = CAPTCHA_TYPES[captype]
-            self.__csrf = self.getcsrf()
-
+            self.__csrf = None
 
     @property 
     def session(self):
@@ -133,7 +132,7 @@ class ThreadObject:
         self.__groupId = value
     
     def newproxy(self):
-        le = random.choice(open("proxies.txt").readlines()).split(":")
+        le = random.choice(PROXIES).split(":")
         self.__proxy = {
             "http":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1],
             "https":"http://"+le[2] + ":" + le[3] + "@" +le[0] +":"+le[1]

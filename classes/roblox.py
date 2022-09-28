@@ -21,7 +21,7 @@ async def verifyEmail(thread):
         return 
     
     except Exception as ex:
-        thread.log("Exception: " + ex)
+        thread.log("Exception: " + ex,  "red")
         return
 
 
@@ -86,92 +86,22 @@ async def verifyEmail(thread):
                         thread.log("Failed to verify email for unknown reason!", "red")
                         return False
         except requests.exceptions.ProxyError:
-            thread.log("Proxy error, if this error happens often get better proxies (iproyal, speedproxies etc.)")
+            thread.log("Proxy error, if this error happens often get better proxies (iproyal, speedproxies etc.)", "red")
             return
-"""
-1secmail doesn't work at the moment
-async def verifyEmail(thread):
-    
-    thread.log("Verifying email...", "blue")
 
-    email_address = thread.username.replace("_", "")
-    email_verified = False
-
-    thread.log("Using email: " + email_address + "@kzccv.com", "yellow")
-
-
-    
-    thread.session.cookies.update({
-        ".ROBLOSECURITY": thread.cookie
-    })  
-    thread.getcsrf()
-    email_json = {
-        "emailAddress":email_address+"@kzccv.com",
-        "password":""
-    }
-    print(email_json)
-    while not email_verified:
-        try:
-            with thread.session.post("https://accountsettings.roblox.com/v1/email", json=email_json) as req:
-                print(req.text)
-                if req.status_code != 200:
-                    if req.json()["errors"][0]["code"] == 8:
-                        thread.log("Account already has email or other error...", "red")
-                        return
-                    
-                    if req.json()["errors"][0]["code"] == 6:
-                        thread.log("Too many attempts", "red")
-                        return
-                    
-                    if req.json()["errors"][0]["code"] == 0:
-                        thread.log(req.json()["errors"][0]["message"], "red")
-                        thread.newproxy()
-                        thread.getcsrf()
-                        
-
-                elif req.status_code == 200:
-                    thread.log("Requested verification email, waiting 10 seconds...", "blue")
-                    await asyncio.sleep(10)
-                    print("Wait over")
-                    
-                    em_id = requests.get(f"https://www.1secmail.com/api/v1/?action=getMessages&login={email_address}&domain=kzccv.com").json()[0]["id"]
-                    body = requests.get(f"https://www.1secmail.com/api/v1/?action=readMessage&login={email_address}&domain=kzccv.com&id={em_id}").json()["body"]
-                    print(body)
-                    SBod = BeautifulSoup(body, 'lxml')
-                    emailbutton = SBod.find_all(class_="email-button")[0]
-                    emailurl = emailbutton.get("href")
-                    
-                    ticket_json = {
-                        "ticket": emailurl.split("=")[1]
-                    }
-                    print(ticket_json["ticket"])
-                    email_tk = thread.session.post("https://accountinformation.roblox.com/v1/email/verify", json=ticket_json)
-                    
-                    if email_tk.status_code == 200:
-                        thread.log("Email successfully verified!", "green")
-                        Verified=False
-
-                        verified_file = open('verified.txt', 'a')
-                        verified_file.writelines(thread.cookie+"\n")
-                        verified_file.close()
-
-                        return True
-                    else:
-                        thread.log("Failed to verify email for unknown reason!", "red")
-                        return False
-        except requests.exceptions.ProxyError:
-            thread.log("Proxy error, if this error happens often get better proxies (iproyal, speedproxies etc.)")
-            return
-"""
 
 async def checkGroup(thread):
     thread.session.cookies.update({
         ".ROBLOSECURITY":thread.cookie
     })
+    thread.getcsrf()
+    await asyncio.sleep(5)
     try:
         with thread.session.post(f"https://groups.roblox.com/v1/groups/{thread.groupId}/users", json={"sessionId":"","redemptionToken":""}) as req:
             if "You are already a member of this group." in req.text:
                 return True 
+            elif "Token validation failed" in req.text:
+                checkGroup(thread)
             else:
                 return False
     except Exception as ex:
@@ -192,7 +122,7 @@ async def groupMessage(thread):
             with thread.session.post(f"https://groups.roblox.com/v1/groups/{thread.groupId}/wall/posts", json=message_data) as req:
                 message_status = req.status_code
                 if req.status_code == 200:
-                    thread.log(f"Successfully posted message [{thread.groupMessage}]")
+                    thread.log(f"Successfully posted message [{thread.groupMessage}]", "green")
                     return 
                 elif req.status_code == 403:
                     if thread.retries >= 3:
@@ -228,9 +158,15 @@ async def rojoinGroup(thread):
                     if thread.retries >= 3:
                         thread.log("Retries 3/3, aborting...", "red")
                         return
-                    cap_json = json.loads(req.json()["errors"][0]["fieldData"])
-                    thread.captchaId, thread.captchaBlob = cap_json["unifiedCaptchaId"], cap_json["dxBlob"] 
-                    await captchaTask(thread)
+                    if "fieldData" in req.text:
+                        cap_json = json.loads(req.json()["errors"][0]["fieldData"])
+                        thread.captchaId, thread.captchaBlob = cap_json["unifiedCaptchaId"], cap_json["dxBlob"] 
+                        await captchaTask(thread)
+                    else:
+                        thread.newproxy()
+                        await asyncio.sleep(1)
+                        thread.getcsrf()
+
                     thread.retries += 1
                 elif "Token validation" in req.text:
                     thread.log("Invalid CSRF Token, regenerating...", "red")
@@ -359,7 +295,7 @@ async def createCaptcha(thread):
         #SCUFFED!!!!!
         with thread.session.post(ro_url, json=ro_data) as req:
             captcha_parsed = json.loads(req.text)
-            if req.status_code == 429 or not "fieldData" in req.text:
+            if req.status_code == 429 and not "fieldData" in req.text:
                 if "token validation failed" in req.text.lower():
                     thread.log("Invalid csrf token, grabbing new one!", "red")
                     thread.getcsrf()
@@ -370,7 +306,7 @@ async def createCaptcha(thread):
                 thread.newproxy()
                 thread.getcsrf()
             elif req.status_code == 200 and thread.raw_captcha_type == "GROUP_WALL_POST" and "buildersClubMembershipType" in req.text:
-                thread.log(f"Successfully posted message [{thread.groupMessage}]", "green")
+                thread.log(f"Successfully posted message [{thread.groupMessage.strip()}]", "green")
                 return False
             else:
                 captcha_creation_status = True
@@ -494,12 +430,21 @@ async def captchaTask(thread):
     while not task_created:
         solve_captcha = requests.post("https://captcha.rip/api/create", json=captcha_payload)
         solve_captcha_json = solve_captcha.json()
-        if "id" in solve_captcha.text:
+        #print(solve_captcha.text)
+        if (solve_captcha_json.get("id") is not None):
             task_created = True
             continue
-        if solve_captcha_json["code"] == 17:
-            thread.log("Task limit reached, waiting 10 seconds.", "red")
-            await asyncio.sleep(10)
+        elif (solve_captcha_json.get("code") is not None):
+            code = solve_captcha_json["code"]
+            if code == 17:
+                thread.log("Task limit reached, waiting 10 seconds.", "red")
+                await asyncio.sleep(10)
+            elif code == 24:
+                thread.log(f"Public key ({thread.raw_captcha_type})[{thread.captcha_type}] blacklisted, please do not use this feature until key is whitelisted.", "red")
+                exit()
+            else:
+                thread.log(solve_captcha_json["message"], "red")
+                exit()
 
     solve_captcha_id = solve_captcha.json()["id"]
 
