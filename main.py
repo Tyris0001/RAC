@@ -45,13 +45,7 @@ if __name__ == "__main__":
         clear()
         print(colored("RAC - FREE VERSION", "blue"))
         print(colored("------------------", "white"))
-        #print(colored("Captcha.rip endpoint status", "blue"))  Coming soon
-        print(colored("[1] - Generate Accounts", "green"))
-        print(colored("[2] - UP2Cookie", "green"))
-        print(colored("[3] - Cookie Checker", "green"))
-        print(colored("[4] - Cookie email verifier", "green"))
-        print(colored("[5] - Group joiner", "green"))
-        print(colored("[6] - Group wall spam", "green"))
+        checkSolver()      
         print(colored("[Please note that cookie files are overwritten regularly, save working cookies in another directory as I have yet to implement better file-creation]", "cyan"))
 
         option_choice = int(input(colored("[USER] - ", "yellow")))
