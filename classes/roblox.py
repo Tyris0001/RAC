@@ -10,21 +10,22 @@ async def verifyEmail(thread):
     email_verified = False 
 
     # using lasagna.email we have to "initialize" an email address. 
-    try:
-        with requests.get("https://lasagna.email/") as req:
-            SBod = BeautifulSoup(req.text, 'lxml')
-            emailbutton = SBod.find_all(class_="btn")[0]
-            email_address = emailbutton.get("href")
-            email_address = email_address.split("/")[2]
-    except requests.exceptions.ProxyError:
-        thread.log("Proxy error, get better proxies maybe?", "red")
-        return 
-    
-    except Exception as ex:
-        thread.log("Exception: " + ex,  "red")
-        return
+    #try:
+    #    with requests.get("https://lasagna.email/") as req:
+    #        SBod = BeautifulSoup(req.text, 'lxml')
+    #        emailbutton = SBod.find_all(class_="btn")[0]
+    #        email_address = emailbutton.get("href")
+    #        email_address = email_address.split("/")[2]
+    #except requests.exceptions.ProxyError:
+    #    thread.log("Proxy error, get better proxies maybe?", "red")
+    #    return 
+   # 
+   # except Exception as ex:
+       # thread.log("Exception: " + ex,  "red")
+        #return
 
-
+    email_address = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(5))
+    email_address = email_address
     thread.log(f"Using email: {email_address}", "yellow")
     time.sleep(5)
     thread.session.cookies.update({
@@ -75,7 +76,7 @@ async def verifyEmail(thread):
                     if email_tk.status_code == 200:
                         thread.log("Email successfully verified!", "green")
                         thread.status = 2
-                        Verified=False
+                        email_verified = True
 
                         verified_file = open('verified.txt', 'a')
                         verified_file.writelines(thread.cookie+"\n")
@@ -87,7 +88,7 @@ async def verifyEmail(thread):
                         return False
         except requests.exceptions.ProxyError:
             thread.log("Proxy error, if this error happens often get better proxies (iproyal, speedproxies etc.)", "red")
-            return
+            return False
 
 
 async def checkGroup(thread):
@@ -292,9 +293,10 @@ async def createCaptcha(thread):
             ro_data = {}
 
 
-        #SCUFFED!!!!!
+        # SCUFFED!!!!!
         with thread.session.post(ro_url, json=ro_data) as req:
             captcha_parsed = json.loads(req.text)
+            print(req.text)
             if req.status_code == 429 and not "fieldData" in req.text:
                 if "token validation failed" in req.text.lower():
                     thread.log("Invalid csrf token, grabbing new one!", "red")
@@ -417,7 +419,7 @@ async def captchaTask(thread):
             "public_key": thread.captcha_type,
             "service_url": "https://roblox-api.arkoselabs.com/",
             "blob": thread.captchaBlob,
-            #"user_agent": thread.useragent
+            "user_agent": thread.useragent
         }
     }
 
