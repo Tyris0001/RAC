@@ -71,21 +71,29 @@ async def verifyEmail(thread):
                     ticket_json = {
                         "ticket": urllib.parse.unquote(emailurl.split("=")[1])
                     }
-                    email_tk = thread.session.post("https://accountinformation.roblox.com/v1/email/verify", json=ticket_json)
-                    
-                    if email_tk.status_code == 200:
-                        thread.log("Email successfully verified!", "green")
-                        thread.status = 2
-                        email_verified = True
+                    try:
+                        unverified = True
+                        while unverified:
+                            with thread.session.post("https://accountinformation.roblox.com/v1/email/verify", json=ticket_json) as req1:
+                                
+                                if req1.status_code == 200:
+                                    thread.log("Email successfully verified!", "green")
+                                    thread.status = 2
+                                    email_verified = True
 
-                        verified_file = open('verified.txt', 'a')
-                        verified_file.writelines(thread.cookie+"\n")
-                        verified_file.close()
-
-                        return True
-                    else:
-                        thread.log("Failed to verify email for unknown reason!", "red")
-                        return False
+                                    verified_file = open('verified.txt', 'a')
+                                    verified_file.writelines(thread.cookie+"\n")
+                                    verified_file.close()
+                                    unverified = False
+                                    return True
+                                else:
+                                    thread.log("Failed to verify email for unknown reason!", "red")
+                                    thread.getcsrf()
+                                    thread.newproxy()
+                                    await asyncio.sleep(3)
+                                    return False
+                    except requests.exceptions.SSLError:
+                        thread.log("SSL Error!", "red")
         except requests.exceptions.ProxyError:
             thread.log("Proxy error, if this error happens often get better proxies (iproyal, speedproxies etc.)", "red")
             return False
@@ -296,8 +304,14 @@ async def createCaptcha(thread):
         # SCUFFED!!!!!
         with thread.session.post(ro_url, json=ro_data) as req:
             captcha_parsed = json.loads(req.text)
-            # print(req.text, req.status_code)
-            if req.status_code == 429 and not "fieldData" in req.text:
+            captxt = req.text
+            print(req.text, req.status_code)
+            if "Challenge is required to authorize the request" in req.text:
+                thread.log("Proof of work catpcha encountered? Retrying...", "red")
+                thread.newproxy()
+                thread.getcsrf()
+                await asyncio.sleep(3)
+            elif req.status_code == 429 and not "fieldData" in req.text:
                 if "token validation failed" in req.text.lower():
                     thread.log("Invalid csrf token, grabbing new one!", "red")
                     thread.getcsrf()
@@ -307,11 +321,6 @@ async def createCaptcha(thread):
                 await asyncio.sleep(10)
                 thread.newproxy()
                 thread.getcsrf()
-            elif "Challenge is required to authorize the request" in req.text:
-                thread.log("Proof of work catpcha encountered? Retrying...", "red")
-                thread.newproxy()
-                thread.getcsrf()
-                await asyncio.sleep(3)
             elif req.status_code == 200 and thread.raw_captcha_type == "GROUP_WALL_POST" and "buildersClubMembershipType" in req.text:
                 thread.log(f"Successfully posted message [{thread.groupMessage.strip()}]", "green")
                 return False
