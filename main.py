@@ -40,6 +40,10 @@ def random_line(afile):
 
 if __name__ == "__main__":
 
+    v_request = requests.get("https://raw.githubusercontent.com/Tyris0001/RAC/main/version")
+    if not v_request.text in open("version").read():
+        print(colored("Outdated RAC version, please download the newest version from [https://github.com/Tyris0001/RAC]", "red"))
+        exit()
 
     while 1:
         l = asyncio.new_event_loop()
