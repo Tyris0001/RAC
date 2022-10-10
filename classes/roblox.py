@@ -25,7 +25,7 @@ async def verifyEmail(thread):
         #return
 
     email_address = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(5))
-    email_address = email_address
+    email_address = email_address + "@lasagna.email"
     thread.log(f"Using email: {email_address}", "yellow")
     time.sleep(5)
     thread.session.cookies.update({
@@ -296,7 +296,7 @@ async def createCaptcha(thread):
         # SCUFFED!!!!!
         with thread.session.post(ro_url, json=ro_data) as req:
             captcha_parsed = json.loads(req.text)
-            print(req.text)
+            # print(req.text, req.status_code)
             if req.status_code == 429 and not "fieldData" in req.text:
                 if "token validation failed" in req.text.lower():
                     thread.log("Invalid csrf token, grabbing new one!", "red")
@@ -307,6 +307,11 @@ async def createCaptcha(thread):
                 await asyncio.sleep(10)
                 thread.newproxy()
                 thread.getcsrf()
+            elif "Challenge is required to authorize the request" in req.text:
+                thread.log("Proof of work catpcha encountered? Retrying...", "red")
+                thread.newproxy()
+                thread.getcsrf()
+                await asyncio.sleep(3)
             elif req.status_code == 200 and thread.raw_captcha_type == "GROUP_WALL_POST" and "buildersClubMembershipType" in req.text:
                 thread.log(f"Successfully posted message [{thread.groupMessage.strip()}]", "green")
                 return False
@@ -476,6 +481,7 @@ async def captchaTask(thread):
     else:
         thread.log(captcha_status, "red")
         return False
+    return False
     
 
 

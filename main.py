@@ -39,6 +39,8 @@ def random_line(afile):
 
 
 if __name__ == "__main__":
+
+
     while 1:
         l = asyncio.new_event_loop()
         asyncio.set_event_loop(l)
@@ -218,18 +220,30 @@ if __name__ == "__main__":
             print("Group Id")
             group_id = input(colored("[USER] - ", "yellow"))
 
+            print("Amount of joins [leave blank for entire cookie file]")
+            count = input(colored("[USER] - ", "yellow"))
+
             handler_list = []
             thread_list = []
             clear()
-
+            if count != "":
+                count = int(count)
+            ind = 0
             for line in open(file_name).readlines():
-
+                
                 line = line.strip("\n").replace(" ", "")
-
+                
                 TObj = ThreadObject(None, None, "GROUP_JOIN", True)
                 TObj.cookie = line
                 TObj.groupId = group_id
                 handler_list.append(TObj)
+                if count == "":
+                    continue 
+                else:
+                    if count <= ind:
+                        pass
+
+                    ind += 1
 
             for handler in handler_list:
                 thread_list.append(threading.Thread(target=ihate_async, args=(5, handler, )))
