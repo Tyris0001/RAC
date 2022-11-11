@@ -305,7 +305,7 @@ async def createCaptcha(thread):
         with thread.session.post(ro_url, json=ro_data) as req:
             captcha_parsed = json.loads(req.text)
             captxt = req.text
-            print(req.text, req.status_code)
+           #print(req.text, req.status_code)
             if "Challenge is required to authorize the request" in req.text:
                 thread.log("Proof of work catpcha encountered? Retrying...", "red")
                 thread.newproxy()
@@ -330,8 +330,13 @@ async def createCaptcha(thread):
             captcha_id = ""
             captcha_blob = ""
             if thread.raw_captcha_type == "SIGNUP":
-                captcha_id = (captcha_parsed["errors"][0]["fieldData"]).split(",")[0]
-                captcha_blob = (captcha_parsed["errors"][0]["fieldData"]).split(",")[1]
+                try:
+                    captcha_id = (captcha_parsed["errors"][0]["fieldData"]).split(",")[0]
+                    captcha_blob = (captcha_parsed["errors"][0]["fieldData"]).split(",")[1]
+                except:
+                    thread.newproxy()
+                    thread.getcsrf()
+                    await createCaptcha(thread)
             else:
                 captcha_fp = json.loads(captcha_parsed["errors"][0]["fieldData"])
                 captcha_id = captcha_fp["unifiedCaptchaId"]
@@ -420,6 +425,7 @@ async def captchaTask(thread):
     
     solver_proxy = thread.session.proxies["http"].replace("http://", "").replace("@", ":").split(":")
 
+    """
     captcha_payload = {
         "key": CAPTCHA_KEY,
         "task": {
@@ -436,6 +442,17 @@ async def captchaTask(thread):
             "user_agent": thread.useragent
         }
     }
+    """
+    captcha_payload = {
+        "clientKey": CAPTCHA_KEY,
+        "task": {
+            "type":"FunCaptchaTaskProxyless",
+            "websiteURL":"https://www.roblox.com/"+site_end,
+            "websitePublicKey":thread.captcha_type,
+            "funcaptchaApiJSSubdomain":"https://roblox-api.arkoselabs.com/",
+            "data": "{\"blob\":\""+thread.captchaBlob+"\"}",
+        }
+    }
 
     thread.log("Prepared captcha payload", "yellow") 
     thread.log("Sending captcha to solving service", "blue") 
@@ -444,51 +461,53 @@ async def captchaTask(thread):
     solve_captcha = None
 
     while not task_created:
-        solve_captcha = requests.post("https://captcha.rip/api/create", json=captcha_payload)
+        solve_captcha = requests.post("https://api.captchaai.io/createTask", json=captcha_payload, headers={"Content-Type": "application/json"})
         solve_captcha_json = solve_captcha.json()
         #print(solve_captcha.text)
-        if (solve_captcha_json.get("id") is not None):
+        if solve_captcha_json["errorId"] == 0:
             task_created = True
-            continue
-        elif (solve_captcha_json.get("code") is not None):
-            code = solve_captcha_json["code"]
-            if code == 17:
-                thread.log("Task limit reached, waiting 10 seconds.", "red")
-                await asyncio.sleep(10)
-            elif code == 24:
-                thread.log(f"Public key ({thread.raw_captcha_type})[{thread.captcha_type}] blacklisted, please do not use this feature until key is whitelisted.", "red")
-                exit()
-            else:
-                thread.log(solve_captcha_json["message"], "red")
-                exit()
+        else:
+            thread.log(solve_captcha_json["errorDescription"], "red")
+            #print(solve_captcha.text)
+            #print(captcha_payload)
+            exit()
 
-    solve_captcha_id = solve_captcha.json()["id"]
+    solve_captcha_id = solve_captcha.json()["taskId"]
 
     thread.log("Captcha task created", "yellow") 
 
     captcha_status = "pending"
 
+    """
     captcha_receive_payload = {
         "key": CAPTCHA_KEY,
         "id": solve_captcha_id
     }
+    """
 
-    while captcha_status not in ("Solved", "Unable to solve captcha", "Unsupported game type", "Task not found"):
+    captcha_receive_payload = {
+        "clientKey":CAPTCHA_KEY,
+        "taskId": solve_captcha_id
+    }
+    rCap = ""
+    while captcha_status not in ("ready", "failed"):
         await asyncio.sleep(3)
         thread.log("Waiting on captcha solver", "blue") 
-        rCap = requests.post("https://captcha.rip/api/fetch", json=captcha_receive_payload)
-        captcha_status = rCap.json()["message"]
+        rCap = requests.post("https://api.captchaai.io/getTaskResult", json=captcha_receive_payload)
+        captcha_status = rCap.json()["status"]
 
     # check what the response is 
     solved_captcha_token = ""
 
-    if captcha_status == "Solved":
-        solved_captcha_token = rCap.json()["token"]
+    if captcha_status == "ready":
+        solved_captcha_token = rCap.json()["solution"]["token"]
         thread.log(captcha_status, "green")
         thread.captchaToken = solved_captcha_token
         return True
     else:
         thread.log(captcha_status, "red")
+        #print(rCap.text)
+        #print()
         return False
     return False
     

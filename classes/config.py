@@ -109,33 +109,12 @@ def setWindowsPolicy():
     loop = asyncio.ProactorEventLoop()
     asyncio.set_event_loop(loop)
 
-def checkSolver():
-    with requests.get("http://captcha.rip/api/status") as req:
-        if req.json()["online"] == False:
-            print(colored("Captcha.rip service is offline, please try again later...", "red"))
-            exit()
-        else:
-            if CAPTCHA_TYPES["SIGNUP"] in req.text:
-                print(colored("[1] - Generate Accounts [Service Down]", "red"))
-            else:
-                print(colored("[1] - Generate Accounts", "green"))
-
-            if CAPTCHA_TYPES["LOGIN"] in req.text:
-                print(colored("[2] - UP2Cookie [Service Down]", "red"))
-            else:
-                print(colored("[2] - UP2Cookie", "green"))
-
-            print(colored("[3] - Cookie Checker", "green"))
-            print(colored("[4] - Cookie email verifier", "green"))
-
-            if CAPTCHA_TYPES["GROUP_JOIN"] in req.text:
-                print(colored("[5] - Group joiner [Service Down]", "red"))
-            else:
-                print(colored("[5] - Group joiner", "green"))
-
-            if CAPTCHA_TYPES["GROUP_WALL_POST"] in req.text:
-                print(colored("[6] - Group wall spam [Service Down]", "red"))
-            else:
-                print(colored("[6] - Group wall spam", "green"))
+def checkSolver(): # rushed / temporary fix since captcha.rip is no more
+    print(colored("[1] - Generate Accounts", "green"))
+    print(colored("[2] - UP2Cookie", "green"))
+    print(colored("[3] - Cookie Checker", "green"))
+    print(colored("[4] - Cookie email verifier", "green"))
+    print(colored("[5] - Group joiner", "green"))
+    print(colored("[6] - Group wall spam", "green"))
 
 
